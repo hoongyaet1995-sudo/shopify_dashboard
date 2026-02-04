@@ -3,7 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\DB;
 
-class DashboardController extends Controller
+class MarketplaceMerchantController extends Controller
 {
     public function index()
     {
@@ -23,6 +23,6 @@ class DashboardController extends Controller
             ->get();
 
         // 4. Send both variables to the view
-        return view('dashboard', compact('customer', 'merchants'));
+        return view('marketplace-merchant', compact('customer', 'merchants'));
     }
 }

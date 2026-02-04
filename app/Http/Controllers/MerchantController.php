@@ -20,8 +20,8 @@ class MerchantController extends Controller
             'marketplace_shop_name' => 'required',
         ]);
 
-                                                   // 1. Prepare Shopify OAuth Data
-        $api_key = config('services.marketplace.shopify.api_key'); 
+        // 1. Prepare Shopify OAuth Data
+        $api_key = config('services.marketplace.shopify.api_key');
         $state   = bin2hex(random_bytes(16));
         session(['shopify_state' => $state]); // Store state to verify in callback
 
@@ -33,18 +33,18 @@ class MerchantController extends Controller
             'redirect_uri' => $shopify_callback,
             'state'        => $state,
         ]);
-        
-        $exists = DB::table('marketplace_user')
-        ->where('marketplace_shop_name', $request->marketplace_shop_name)
-        ->exists();
 
-        if(!$exists){
+        $exists = DB::table('marketplace_user')
+            ->where('marketplace_shop_name', $request->marketplace_shop_name)
+            ->exists();
+
+        if (! $exists) {
             // 2. Save to database
             DB::table('marketplace_user')->insert([
                 'marketplace_user_id'   => session('customer_id'),
                 'marketplace_user_name' => $request->marketplace_user_name,
                 'marketplace_shop_name' => $request->marketplace_shop_name,
-                'marketplace_state' => $state,
+                'marketplace_state'     => $state,
                 'created_at'            => now(),
             ]);
         }
@@ -61,26 +61,20 @@ class MerchantController extends Controller
 
     public function authorize(Request $request)
     {
-        // 1️⃣ Validate input
+        // 1️⃣ 验证输入
         $request->validate([
             'store_id' => 'required|integer|exists:marketplace_user,marketplace_user_id',
         ]);
 
-        // 2️⃣ Fetch merchant
-        
+        // 2️⃣ 获取商家数据
         $merchant = DB::table('marketplace_user')
             ->where('marketplace_user_id', $request->store_id)
             ->first();
 
-        $exist = DB::table('marketplace_user')
-            ->where('marketplace_user_id', $request->store_id)
-            ->exists();
-            
-        if($exist){
-            // 3️⃣ (Later) Shopify verification logic goes here
-            $api_key = config('services.marketplace.shopify.api_key'); 
+        if ($merchant) {
+            $api_key = config('services.marketplace.shopify.api_key');
             $state   = bin2hex(random_bytes(16));
-            session(['shopify_state' => $state]); // Store state to verify in callback
+            session(['shopify_state' => $state]);
 
             $shopify_callback = "https://coalitional-liturgistic-miguelina.ngrok-free.dev/shopify/callback";
 
@@ -90,40 +84,41 @@ class MerchantController extends Controller
                 'redirect_uri' => $shopify_callback,
                 'state'        => $state,
             ]);
-            // For now, just return success
 
-            // 2. Save to database
+            // 更新数据库中的 state 记录
             DB::table('marketplace_user')
-            ->where('marketplace_user_id', $request->store_id)
-            ->update([
-                'marketplace_state' => $state,
-                'updated_at'        => now(),
-            ]);
+                ->where('marketplace_user_id', $request->store_id)
+                ->update([
+                    'marketplace_state' => $state,
+                    'updated_at'        => now(),
+                ]);
 
-            // 3. Construct the Shopify Install URL
+            // 构建 Shopify 授权地址
             $install_url = "https://{$merchant->marketplace_shop_name}.myshopify.com/admin/oauth/authorize?{$params}";
 
-            // 4. Return the URL to AJAX instead of using header()
             return response()->json([
                 'success'      => true,
                 'redirect_url' => $install_url,
             ]);
-        
-        }
-        else{
-            return 'No marketplace user found.';
+
+        } else {
+            // 关键点：返回 404 状态码和 JSON 错误信息
+            return response()->json([
+                'success' => false,
+                'message' => 'No marketplace user found.',
+            ], 404);
         }
     }
 
     public function callback(Request $request)
     {
-        $params = $request->all();
-        $api_key = config('services.marketplace.shopify.api_key'); 
-        $api_secret = config('services.marketplace.shopify.api_secret'); 
+        $params     = $request->all();
+        $api_key    = config('services.marketplace.shopify.api_key');
+        $api_secret = config('services.marketplace.shopify.api_secret');
 
         // 1. Basic Security Check (Verify state)
         if ($params['state'] !== session('shopify_state')) {
-            return redirect('/dashboard')->with('error', 'State mismatch. Possible CSRF attack.');
+            return redirect('/marketplace-merchant')->with('error', 'State mismatch. Possible CSRF attack.');
         }
 
         // 2. Exchange 'code' for 'access_token'
@@ -151,13 +146,23 @@ class MerchantController extends Controller
             \Log::info('Shopify Response:', $response->json());
 
             // 3. Save the token to your marketplace_user table
-            DB::table('marketplace_user')
-                ->where('marketplace_shop_name', str_replace('.myshopify.com', '', $params['shop']))
-                ->update(['marketplace_access_token' => $access_token]);
+            $shop_identifier = str_replace('.myshopify.com', '', $params['shop']);
 
-            return redirect('/dashboard')->with('success', 'Shopify Store Connected!');
+            $affected = DB::table('marketplace_user')
+                ->where('marketplace_shop_name', $shop_identifier)
+                ->update([
+                    'marketplace_access_token' => $access_token,
+                    'marketplace_shop_id'      => $params['code'], // 再次提醒：建议确认字段类型
+                ]);
+
+            if ($affected === 0) {
+                // 说明数据库里找不到 marketplace_shop_name 等于 $shop_identifier 的记录
+                \Log::error("Update failed: No record found for " . $shop_identifier);
+            }
+
+            return redirect('/marketplace-merchant')->with('success', 'Shopify Store Connected!');
         }
 
-        return redirect('/dashboard')->with('error', 'Failed to get access token.');
+        return redirect('/marketplace-merchant')->with('error', 'Failed to get access token.');
     }
 }
