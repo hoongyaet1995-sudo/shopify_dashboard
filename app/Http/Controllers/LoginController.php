@@ -23,7 +23,7 @@ class LoginController extends Controller
         if ($customer && $password == $customer->password) {
             session(['customer_id' => $customer->customers_id]);
 
-            return redirect('/dashboard'); // It's better to redirect than return a string
+            return redirect('/marketplace-merchant'); // It's better to redirect than return a string
         }
 
         return back()->with('error', 'Invalid username or password');

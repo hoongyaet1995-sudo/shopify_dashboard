@@ -11,7 +11,7 @@
 }
 
 body {
-    background-color: #f8f9fa;
+    background-color: #f8f9fa !important;
 }
 
 /* Sidebar Styling */
@@ -85,33 +85,63 @@ body {
     padding: 25px;
 }
 
+/* Custom Date Dropdown Styling */
+.custom-date-trigger::after {
+    display: none;
+    /* Hide the default Bootstrap arrow */
+}
+
+.dropdown-item:hover {
+    background-color: #f6f6f7;
+}
+
+.dropdown-item input[type="radio"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-color: #adb5bd;
+    cursor: pointer;
+}
+
+/* Ensure the label works as the click target */
+.dropdown-item {
+    cursor: pointer;
+    white-space: normal;
+    /* Allow sub-text to wrap */
+}
+
 /* Mobile Sidebar Styles */
 @media (max-width: 767.98px) {
     .sidebar {
-        left: -250px; /* Hide sidebar off-screen */
+        left: -250px;
+        /* Hide sidebar off-screen */
         z-index: 1050;
-        box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+        box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
         transition: left 0.3s ease-in-out;
     }
 
     .sidebar.show {
-        left: 0; /* Slide in when .show class is added */
+        left: 0;
+        /* Slide in when .show class is added */
     }
 
     .main-content {
-        margin-left: 0 !important; /* Content takes full width on mobile */
+        margin-left: 0 !important;
+        /* Content takes full width on mobile */
         padding: 20px;
     }
-    
+
     /* Optional: Add a dark overlay when sidebar is open */
     .sidebar-overlay {
         position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.5);
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
         z-index: 1040;
         display: none;
     }
-    
+
     .sidebar-overlay.active {
         display: block;
     }

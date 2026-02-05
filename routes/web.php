@@ -25,3 +25,4 @@ Route::get('/shopify/callback', [MerchantController::class, 'callback']);
 Route::post('/merchants/authorize', [MerchantController::class, 'authorize'])->name('merchants.authorize');
 
 Route::get('/marketplace-order', [MarketplaceOrderController::class, 'index']);
+Route::post('/marketplace/orders/sync', [MarketplaceOrderController::class, 'syncOrders']);

@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\MarketplaceUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -34,18 +35,17 @@ class MerchantController extends Controller
             'state'        => $state,
         ]);
 
-        $exists = DB::table('marketplace_user')
-            ->where('marketplace_shop_name', $request->marketplace_shop_name)
+        $exists = MarketplaceUser::where('marketplace_shop_name', $request->marketplace_shop_name)
             ->exists();
 
         if (! $exists) {
-            // 2. Save to database
-            DB::table('marketplace_user')->insert([
+            // 2. Save using Eloquent Model
+            MarketplaceUser::create([
                 'marketplace_user_id'   => session('customer_id'),
                 'marketplace_user_name' => $request->marketplace_user_name,
                 'marketplace_shop_name' => $request->marketplace_shop_name,
                 'marketplace_state'     => $state,
-                'created_at'            => now(),
+                // 'created_at' => now(), // You can remove this if $timestamps = true
             ]);
         }
 

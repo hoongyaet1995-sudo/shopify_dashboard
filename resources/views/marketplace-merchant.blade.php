@@ -43,16 +43,14 @@
                 </tr>
                 @endforeach
 
-            @if($merchants->isEmpty())
                     <tr>
                         <td colspan="3" class="text-center py-5">
-                            <p class="text-muted">No merchants connected yet.</p>
+                            <!-- <p class="text-muted">No merchants connected yet.</p> -->
                             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#connectStoreModal">
                                 <i class="bi bi-plus-lg"></i> Connect Store Now
                             </button>
                         </td>
                     </tr>
-                @endif
             </tbody>
         </table>
 
