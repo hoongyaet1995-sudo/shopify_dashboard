@@ -1,10 +1,10 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MarketplaceMerchantController;
-use App\Http\Controllers\MerchantController;
 use App\Http\Controllers\MarketplaceOrderController;
+use App\Http\Controllers\MerchantController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
@@ -24,5 +24,6 @@ Route::post('/merchants/store', [MerchantController::class, 'store']);
 Route::get('/shopify/callback', [MerchantController::class, 'callback']);
 Route::post('/merchants/authorize', [MerchantController::class, 'authorize'])->name('merchants.authorize');
 
-Route::get('/marketplace-order', [MarketplaceOrderController::class, 'index']);
-Route::post('/marketplace/orders/sync', [MarketplaceOrderController::class, 'syncOrders']);
+Route::get('/marketplace-order', [MarketplaceOrderController::class, 'index'])->name('marketplace-order');
+// Route::post('/marketplace/orders/sync', [MarketplaceOrderController::class, 'syncOrders']);
+Route::post('/marketplace/orders/sync', [MarketplaceOrderController::class, 'syncOrders'])->name('marketplace-order.sync');

@@ -74,19 +74,19 @@
         <div class="col">
             <div class="card border-0 shadow-sm p-3 h-100">
                 <div class="text-muted small mb-1">Items ordered</div>
-                <div class="fs-4 fw-bold">4 <span class="text-muted fs-6 fw-normal">—</span></div>
+                <div class="fs-4 fw-bold">{{ $marketplace_order->sum(function($order) { return $order->products->sum('quantity_purchase'); }) }} <span class="text-muted fs-6 fw-normal">—</span></div>
             </div>
         </div>
         <div class="col">
             <div class="card border-0 shadow-sm p-3 h-100">
-                <div class="text-muted small mb-1">Returns</div>
-                <div class="fs-4 fw-bold">$0 <span class="text-muted fs-6 fw-normal">—</span></div>
+                <div class="text-muted small mb-1">Total Sales</div>
+                <div class="fs-4 fw-bold">${{ $marketplace_order->sum('total_price') }} <span class="text-muted fs-6 fw-normal">—</span></div>
             </div>
         </div>
         <div class="col">
             <div class="card border-0 shadow-sm p-3 h-100">
                 <div class="text-muted small mb-1">Orders fulfilled</div>
-                <div class="fs-4 fw-bold">1 <span class="text-muted fs-6 fw-normal">—</span></div>
+                <div class="fs-4 fw-bold">{{ $marketplace_order->where('fulfillment_status', 'FULFILLED')->count() }} <span class="text-muted fs-6 fw-normal">—</span></div>
             </div>
         </div>
         <div class="col">
@@ -101,10 +101,10 @@
         <div class="card-header bg-white border-bottom-0 pt-3 px-3">
             <div class="d-flex justify-content-between align-items-center">
                 <ul class="nav nav-tabs border-0 custom-tabs">
-                    <li class="nav-item"><a class="nav-link active" href="#">All</a></li>
-                    <li class="nav-item"><a class="nav-link text-dark" href="#">Unfulfilled</a></li>
-                    <li class="nav-item"><a class="nav-link text-dark" href="#">Unpaid</a></li>
-                    <li class="nav-item"><a class="nav-link text-dark" href="#">Open</a></li>
+                    <li class="nav-item"><a href="{{ route('marketplace-order', ['status' => 'all', 'range' => $days]) }}" class="nav-link {{ $status === 'all' ? 'active fw-bold' : 'text-muted' }}"> All</a></li>
+                    <li class="nav-item"><a href="{{ route('marketplace-order', ['status' => 'unfulfilled', 'range' => $days]) }}" class="nav-link {{ $status === 'unfulfilled' ? 'active fw-bold' : 'text-muted' }}">Unfulfilled</a></li>
+                    <li class="nav-item"><a href="{{ route('marketplace-order', ['status' => 'unpaid', 'range' => $days]) }}" class="nav-link {{ $status === 'unpaid' ? 'active fw-bold' : 'text-muted' }}">Unpaid</a></li>
+                    <li class="nav-item"><a href="{{ route('marketplace-order', ['status' => 'open', 'range' => $days]) }}" class="nav-link {{ $status === 'open' ? 'active fw-bold' : 'text-muted' }}">Open</a></li>
                     <li class="nav-item"><a class="nav-link text-dark" href="#">Archived</a></li>
                     <li class="nav-item"><a class="nav-link text-dark" href="#"><i class="bi bi-plus"></i></a></li>
                 </ul>
@@ -120,39 +120,106 @@
             <table class="table align-middle mb-0">
                 <thead class="bg-light">
                     <tr class="small text-muted text-uppercase">
+                        <th style="width: 30px;">#</th>
                         <th style="width: 40px;"><input type="checkbox" class="form-check-input"></th>
                         <th>Order</th>
                         <th>Date</th>
                         <th>Customer</th>
                         <th>Channel</th>
                         <th>Total</th>
-                        <th>Payment status</th>
-                        <th>Fulfillment status</th>
+                        <th>Payment</th>
+                        <th>Fulfillment</th>
                         <th>Items</th>
-                        <th>Delivery method</th>
+                        <th>Shipping Fee</th>
+                        <th>Shipping Address</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($marketplace_order as $orders)
+                    @foreach($marketplace_order as $order)
                     <tr>
+                        <td class="text-muted small">{{ $order->id }}</td>
                         <td><input type="checkbox" class="form-check-input"></td>
-                        <td class="fw-bold">{{ $orders->marketplace_invoice_id }}</td>
-                        <td class="small">{{ $orders->created_at }}</td>
-                        <td class="text-muted small">No customer</td>
-                        <td><span class="badge bg-light text-dark border fw-normal">{{ getMarketplaceShopName($orders->user_id, $orders->marketplace_user_id) }}</span></td>
-                        <td class="fw-bold">$2,285.85</td>
+                        <td class="fw-bold">{{ $order->marketplace_invoice_id }}</td>
+                        <td class="small text-nowrap">{{ \Carbon\Carbon::parse($order->created_at)->format('M d, h:i a') }}</td>
+                        <td class="text-muted small">
+                            @if($order->customer_name || $order->customer_email)
+                                <div class="fw-semibold text-dark">
+                                    {{ $order->customer_name ?? 'Guest Customer' }}
+                                </div>
+                                <div class="text-muted small">
+                                    {{ $order->customer_email }}
+                                </div>
+                            @else
+                                <span class="text-muted fst-italic">No customer info</span>
+                            @endif
+                        </td>
+
                         <td>
-                            <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark fw-normal px-2 py-1">
-                                <i class="bi bi-circle-fill me-1 small"></i> Paid
+                            <span class="badge bg-light text-dark border fw-normal">
+                                {{ getMarketplaceShopName($order->user_id, $order->marketplace_user_id) }}
                             </span>
                         </td>
+                        <td class="fw-bold">${{ number_format($order->total_price, 2) }}</td>
+
                         <td>
-                            <span class="badge rounded-pill bg-warning bg-opacity-25 text-dark fw-normal px-2 py-1">
-                                <i class="bi bi-dot me-1"></i> Unfulfilled
+                            <span class="badge rounded-pill {{ getFinancialStatusClass($order->financial_status) }} fw-normal px-2 py-1">
+                                <i class="bi bi-circle-fill me-1" style="font-size: 6px; vertical-align: middle;"></i>
+                                {{ ucfirst(strtolower($order->financial_status)) }}
                             </span>
                         </td>
-                        <td class="small text-muted">3 items</td>
-                        <td class="small text-muted">Shipping</td>
+
+                        <td>
+                            <span class="badge rounded-pill {{ getFulfillmentStatusClass($order->fulfillment_status) }} fw-normal px-2 py-1">
+                                {{ ucfirst(strtolower($order->fulfillment_status)) }}
+                            </span>
+                        </td>
+
+                        <td class="small text-muted text-nowrap">
+                            <div class="dropdown">
+                                <a class="text-muted text-decoration-none dropdown-toggle cursor-pointer"
+                                href="#"
+                                role="button"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false">
+                                    {{ $order->products->sum('quantity_purchase') }}
+                                    {{ Str::plural('item', $order->products->sum('quantity_purchase')) }}
+                                </a>
+
+                                <div class="dropdown-menu shadow border-0 p-3" style="min-width: 300px; border-radius: 12px;">
+                                    <div class="mb-2">
+                                        <span class="badge rounded-pill {{ getFulfillmentStatusClass($order->fulfillment_status) }} fw-normal px-2 py-1">
+                                            <i class="bi bi-circle-fill me-1" style="font-size: 6px; vertical-align: middle;"></i>
+                                            {{ ucfirst(strtolower($order->fulfillment_status)) }}
+                                        </span>
+                                    </div>
+
+                                    @foreach($order->products as $product)
+                                        <div class="d-flex align-items-center justify-content-between p-2 border rounded-3 mb-1">
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ $product->product_image ?? asset('images/no-image.png') }}"
+                                                    alt="product"
+                                                    style="width: 40px; height: 40px; object-fit: cover;"
+                                                    class="rounded border me-3">
+                                                <span class="text-dark small fw-medium text-truncate" style="max-width: 150px;">
+                                                    {{ $product->product_name }}
+                                                </span>
+                                            </div>
+                                            <div class="text-muted small">
+                                                × {{ $product->quantity_purchase }}
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </td>
+                        <td class="small text-muted">${{ number_format($order->total_shipping, 2) }}</td>
+                        <td>
+                            @if($order->shipping_address_json)
+                                {{ $order->shipping_address_json['city'] }}, {{ $order->shipping_address_json['country'] }}
+                            @else
+                                Local Pickup
+                            @endif
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
